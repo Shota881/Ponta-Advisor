@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pontaポイント運用コース診断</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --au-orange: #f06000;
+    --au-orange-light: #ff8c00;
+    --balance-color: #1565c0;
+    --us-color: #e65100;
+    --india-color: #6a1b9a;
+    --bg: #f5f5f5;
+    --card-bg: #ffffff;
+    --text: #212121;
+    --text-secondary: #757575;
+    --border: #e0e0e0;
+    --radius: 16px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.10);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 50%, #ffccbc 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px 48px;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    width: 100%;
+    max-width: 600px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .card-header {
+    background: linear-gradient(135deg, var(--au-orange) 0%, var(--au-orange-light) 100%);
+    padding: 24px 28px 20px;
+    color: white;
+  }
+
+  .logo {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    opacity: 0.9;
+    margin-bottom: 6px;
+  }
+
+  .card-header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  .card-header p {
+    font-size: 13px;
+    opacity: 0.88;
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.3);
+    position: relative;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: white;
+    transition: width 0.4s ease;
+  }
+
+  .card-body {
+    padding: 28px 28px 24px;
+  }
+
+  /* --- Screen transitions --- */
+  .screen {
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .screen.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* --- Welcome screen --- */
+  .welcome-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 20px;
+    border: 2px solid #ffcc80;
+  }
+
+  .welcome-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .welcome-desc {
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  .market-panel {
+    background: #f8f9fa;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+
+  .market-panel-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+  }
+
+  .market-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #e0e0e0;
+    border-top-color: var(--au-orange);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .market-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .market-item {
+    background: white;
+    border-radius: 10px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .market-item-label {
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .market-item-label.balance { color: var(--balance-color); }
+  .market-item-label.us      { color: var(--us-color); }
+  .market-item-label.india   { color: var(--india-color); }
+
+  .market-item-change {
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+
+  .market-item-period {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .change-up   { color: #e53935; }
+  .change-down { color: #1e88e5; }
+  .change-flat { color: var(--text-secondary); }
+
+  .market-note {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    line-height: 1.4;
+  }
+
+  .data-error-note {
+    font-size: 12px;
+    color: #f57c00;
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 8px;
+  }
+
+  /* --- Steps --- */
+  .step-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--au-orange);
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+
+  .step-question {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .step-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  /* --- Slider (Step 1) --- */
+  .slider-wrap {
+    margin-bottom: 28px;
+  }
+
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+
+  .risk-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, #bbdefb 0%, #1565c0 50%, #e65100 75%, #6a1b9a 100%);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .risk-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--au-orange);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  .risk-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .risk-slider::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--au-orange);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    cursor: pointer;
+  }
+
+  .slider-value-display {
+    text-align: center;
+    margin-top: 14px;
+  }
+
+  .slider-value-number {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--au-orange);
+    line-height: 1;
+  }
+
+  .slider-value-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  /* --- Choice cards --- */
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .choice-card {
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+    text-align: left;
+  }
+
+  .choice-card:hover {
+    border-color: var(--au-orange);
+    background: #fff8f0;
+  }
+
+  .choice-card.selected {
+    border-color: var(--au-orange);
+    background: #fff3e0;
+  }
+
+  .choice-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .choice-card.selected .choice-card-title { color: var(--au-orange); }
+
+  .choice-card-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+    padding-left: 26px;
+  }
+
+  .choice-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+
+  .choice-card.selected .choice-icon {
+    background: var(--au-orange);
+    border-color: var(--au-orange);
+  }
+
+  .choice-check {
+    width: 10px;
+    height: 6px;
+    border-left: 2px solid white;
+    border-bottom: 2px solid white;
+    transform: rotate(-45deg) translateY(-1px);
+    display: none;
+  }
+
+  .choice-card.selected .choice-check { display: block; }
+
+  /* --- Buttons --- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    line-height: 1;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--au-orange), var(--au-orange-light));
+    color: white;
+    width: 100%;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(240,96,0,0.4);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+
+  .btn-secondary:hover { background: #f5f5f5; }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  /* --- Results --- */
+  .result-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 12px;
+    color: white;
+  }
+
+  .result-badge.balance { background: var(--balance-color); }
+  .result-badge.us      { background: var(--us-color); }
+  .result-badge.india   { background: var(--india-color); }
+
+  .result-course-name {
+    font-size: 26px;
+    font-weight: 800;
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+
+  .result-course-name.balance { color: var(--balance-color); }
+  .result-course-name.us      { color: var(--us-color); }
+  .result-course-name.india   { color: var(--india-color); }
+
+  .result-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  .section-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  /* --- Score bars --- */
+  .score-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .score-row-label {
+    width: 90px;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  .score-row-label.balance { color: var(--balance-color); }
+  .score-row-label.us      { color: var(--us-color); }
+  .score-row-label.india   { color: var(--india-color); }
+
+  .score-bar-track {
+    flex: 1;
+    height: 22px;
+    background: #f0f0f0;
+    border-radius: 11px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 11px;
+    width: 0%;
+    transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+  }
+
+  .score-bar-fill.balance { background: linear-gradient(to right, #90caf9, var(--balance-color)); }
+  .score-bar-fill.us      { background: linear-gradient(to right, #ffcc80, var(--us-color)); }
+  .score-bar-fill.india   { background: linear-gradient(to right, #ce93d8, var(--india-color)); }
+
+  .score-bar-fill.winner {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  }
+
+  .score-bar-text {
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+  }
+
+  .score-number {
+    width: 38px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+
+  /* --- Reasons --- */
+  .reasons {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+
+  .reason-item {
+    display: flex;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+
+  .reason-item:last-child { margin-bottom: 0; }
+
+  .reason-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* --- Market summary in results --- */
+  .market-summary {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .market-summary-header {
+    background: #f8f9fa;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+  }
+
+  .market-summary-body {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .market-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .market-summary-name {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .market-summary-name.balance { color: var(--balance-color); }
+  .market-summary-name.us      { color: var(--us-color); }
+  .market-summary-name.india   { color: var(--india-color); }
+
+  .market-badges {
+    display: flex;
+    gap: 6px;
+  }
+
+  .change-badge {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+
+  .change-badge.up   { color: #e53935; background: #ffebee; }
+  .change-badge.down { color: #1e88e5; background: #e3f2fd; }
+  .change-badge.flat { color: var(--text-secondary); background: #f5f5f5; }
+
+  .badge-period {
+    font-size: 10px;
+    font-weight: 400;
+    opacity: 0.8;
+  }
+
+  .no-data-note {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 8px 0;
+  }
+
+  /* --- Disclaimer --- */
+  .disclaimer {
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 11px;
+    color: #795548;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  /* --- Divider --- */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  /* --- Responsive --- */
+  @media (max-width: 420px) {
+    .card-body { padding: 20px 18px 20px; }
+    .card-header { padding: 18px 18px 16px; }
+    .market-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .market-item { padding: 8px 6px; }
+    .market-item-change { font-size: 13px; }
+    .score-row-label { width: 70px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <!-- Header -->
+  <div class="card-header">
+    <div class="logo">au PAY ポイント運用</div>
+    <h1>Pontaポイント<br>運用コース診断</h1>
+    <p>あなたに最適なコースを、市場データ＋アンケートで自動判定します</p>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+
+  <div class="card-body">
+
+    <!-- ===== WELCOME ===== -->
+    <div class="screen active" id="screen-welcome">
+      <div class="welcome-icon">📊</div>
+      <div class="welcome-title">コース診断へようこそ</div>
+      <div class="welcome-desc">
+        3つの質問に答えるだけで、バランス・米国チャレンジ・インドチャレンジから<br>
+        あなたに合ったコースを提案します。
+      </div>
+
+      <div class="market-panel">
+        <div class="market-panel-title">リアルタイム市場データ取得中</div>
+        <div class="market-loading" id="marketLoading">
+          <div class="spinner"></div>
+          <span>各指数のデータを取得しています…</span>
+        </div>
+        <div id="marketDataDisplay" style="display:none">
+          <div class="market-grid" id="marketGrid"></div>
+          <div class="market-note">※ 直近1ヶ月の騰落率を表示（▲上昇 / ▼下落）</div>
+        </div>
+        <div id="marketError" style="display:none">
+          <div class="data-error-note">⚠️ 市場データの取得に失敗しました。アンケート結果のみで診断します。</div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btnStart" disabled onclick="goTo('step1')">
+        診断スタート →
+      </button>
+    </div>
+
+    <!-- ===== STEP 1: Risk ===== -->
+    <div class="screen" id="screen-step1">
+      <div class="step-label">STEP 1 / 3</div>
+      <div class="step-question">リスク許容度はどのくらいですか？</div>
+      <div class="step-desc">損失が出たとき、どこまで耐えられますか。1が最も慎重、5が最も積極的です。</div>
+
+      <div class="slider-wrap">
+        <div class="slider-labels">
+          <span>慎重（元本重視）</span>
+          <span>積極的（高リターン志向）</span>
+        </div>
+        <input type="range" class="risk-slider" id="riskSlider" min="1" max="5" value="3" step="1">
+        <div class="slider-value-display">
+          <div class="slider-value-number" id="sliderNum">3</div>
+          <div class="slider-value-label" id="sliderLabel">バランス重視</div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goTo('welcome')">← 戻る</button>
+        <button class="btn btn-primary" onclick="goTo('step2')" style="flex:1">次へ →</button>
+      </div>
+    </div>
+
+    <!-- ===== STEP 2: Period ===== -->
+    <div class="screen" id="screen-step2">
+      <div class="step-label">STEP 2 / 3</div>
+      <div class="step-question">運用期間の目安はどのくらいですか？</div>
+      <div class="step-desc">引き出す予定まで、おおよそどのくらい運用しますか？</div>
+
+      <div class="choices" id="period-choices">
+        <div class="choice-card" onclick="selectChoice('period','short',this)">
+          <div class="choice-card-title">
+            <span class="choice-icon"><span class="choice-check"></span></span>
+            短期（〜6ヶ月）
+          </div>
+          <div class="choice-card-desc">近いうちに使う予定があり、大きな損失は避けたい</div>
+        </div>
+        <div class="choice-card" onclick="selectChoice('period','mid',this)">
+          <div class="choice-card-title">
+            <span class="choice-icon"><span class="choice-check"></span></span>
+            中期（6ヶ月〜2年）
+          </div>
+          <div class="choice-card-desc">ある程度の期間、腰を据えて運用できる</div>
+        </div>
+        <div class="choice-card" onclick="selectChoice('period','long',this)">
+          <div class="choice-card-title">
+            <span class="choice-icon"><span class="choice-check"></span></span>
+            長期（2年以上）
+          </div>
+          <div class="choice-card-desc">長い目で見て、じっくり増やしたい</div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goTo('step1')">← 戻る</button>
+        <button class="btn btn-primary" id="btnStep2Next" disabled onclick="goTo('step3')" style="flex:1">次へ →</button>
+      </div>
+    </div>
+
+    <!-- ===== STEP 3: Goal ===== -->
+    <div class="screen" id="screen-step3">
+      <div class="step-label">STEP 3 / 3</div>
+      <div class="step-question">ポイント運用の主な目的は何ですか？</div>
+      <div class="step-desc">もっとも近いものを選んでください。</div>
+
+      <div class="choices" id="goal-choices">
+        <div class="choice-card" onclick="selectChoice('goal','protect',this)">
+          <div class="choice-card-title">
+            <span class="choice-icon"><span class="choice-check"></span></span>
+            🛡️ 元本保護
+          </div>
+          <div class="choice-card-desc">ポイントをできるだけ減らしたくない。安全性最優先。</div>
+        </div>
+        <div class="choice-card" onclick="selectChoice('goal','stable',this)">
+          <div class="choice-card-title">
+            <span class="choice-icon"><span class="choice-check"></span></span>
+            📈 安定成長
+          </div>
+          <div class="choice-card-desc">多少のリスクは許容して、着実に増やしていきたい。</div>
+        </div>
+        <div class="choice-card" onclick="selectChoice('goal','aggressive',this)">
+          <div class="choice-card-title">
+            <span class="choice-icon"><span class="choice-check"></span></span>
+            🚀 積極増加
+          </div>
+          <div class="choice-card-desc">大きなリターンを狙って積極的に運用したい。</div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="goTo('step2')">← 戻る</button>
+        <button class="btn btn-primary" id="btnStep3Next" disabled onclick="calcResult()" style="flex:1">診断する ✓</button>
+      </div>
+    </div>
+
+    <!-- ===== RESULT ===== -->
+    <div class="screen" id="screen-result">
+      <div id="resultBadge" class="result-badge"></div>
+      <div id="resultCourseName" class="result-course-name"></div>
+      <div id="resultSubtitle" class="result-subtitle"></div>
+
+      <div class="section-title">スコア比較</div>
+      <div class="score-bars">
+        <div class="score-row">
+          <div class="score-row-label balance">バランス</div>
+          <div class="score-bar-track">
+            <div class="score-bar-fill balance" id="barBalance"></div>
+          </div>
+          <div class="score-number" id="numBalance"></div>
+        </div>
+        <div class="score-row">
+          <div class="score-row-label us">米国チャレンジ</div>
+          <div class="score-bar-track">
+            <div class="score-bar-fill us" id="barUs"></div>
+          </div>
+          <div class="score-number" id="numUs"></div>
+        </div>
+        <div class="score-row">
+          <div class="score-row-label india">インドチャレンジ</div>
+          <div class="score-bar-track">
+            <div class="score-bar-fill india" id="barIndia"></div>
+          </div>
+          <div class="score-number" id="numIndia"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-title">判定理由</div>
+      <div class="reasons" id="resultReasons"></div>
+
+      <div class="divider"></div>
+
+      <div class="section-title">市場データサマリー</div>
+      <div class="market-summary" id="resultMarket"></div>
+
+      <div class="disclaimer">
+        ※ 本診断は情報提供を目的としたものであり、投資勧誘ではありません。
+        ポイント運用は元本を保証するものではなく、運用結果はお客様の責任となります。
+        市場データは取得タイミングにより最新でない場合があります。
+      </div>
+
+      <button class="btn btn-primary" onclick="resetApp()">もう一度診断する 🔄</button>
+    </div>
+
+  </div><!-- /card-body -->
+</div><!-- /card -->
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+  risk: 3,
+  period: null,   // 'short' | 'mid' | 'long'
+  goal: null,     // 'protect' | 'stable' | 'aggressive'
+  market: null    // { balance, us, india } each: { change1w, change1m, change3m } or null
+};
+
+// ============================================================
+// MARKET DATA
+// ============================================================
+const SYMBOLS = {
+  us:      { sym: '%5EGSPC',  name: 'S&P 500',    key: 'us' },
+  india:   { sym: '%5ENSEI',  name: 'Nifty 50',   key: 'india' },
+  balance: { sym: 'ACWI',     name: 'ACWI ETF',   key: 'balance' }
+};
+
+const PROXIES = [
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
+];
+
+async function fetchWithProxy(rawUrl) {
+  for (const proxyFn of PROXIES) {
+    try {
+      const proxyUrl = proxyFn(rawUrl);
+      const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+      if (!resp.ok) continue;
+      const text = await resp.text();
+      // allorigins wraps in {contents:...}
+      try {
+        const wrapper = JSON.parse(text);
+        if (wrapper && wrapper.contents) return JSON.parse(wrapper.contents);
+      } catch {}
+      return JSON.parse(text);
+    } catch {}
+  }
+  return null;
+}
+
+function calcChanges(closes) {
+  if (!closes || closes.length < 2) return { change1w: null, change1m: null, change3m: null };
+  const last = closes[closes.length - 1];
+  const idx1w = Math.max(0, closes.length - 6);
+  const idx1m = Math.max(0, closes.length - 22);
+  const idx3m = 0;
+  const pct = (a, b) => b !== 0 ? ((a - b) / b * 100) : null;
+  return {
+    change1w: pct(last, closes[idx1w]),
+    change1m: pct(last, closes[idx1m]),
+    change3m: pct(last, closes[idx3m])
+  };
+}
+
+async function fetchSymbol(symObj) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symObj.sym}?range=3mo&interval=1d&events=history`;
+  const data = await fetchWithProxy(url);
+  if (!data) return null;
+  try {
+    const result = data.chart.result[0];
+    const closes = result.indicators.quote[0].close.filter(v => v !== null && v !== undefined);
+    return calcChanges(closes);
+  } catch { return null; }
+}
+
+async function fetchAllMarket() {
+  const results = await Promise.allSettled([
+    fetchSymbol(SYMBOLS.balance),
+    fetchSymbol(SYMBOLS.us),
+    fetchSymbol(SYMBOLS.india)
+  ]);
+  return {
+    balance: results[0].status === 'fulfilled' ? results[0].value : null,
+    us:      results[1].status === 'fulfilled' ? results[1].value : null,
+    india:   results[2].status === 'fulfilled' ? results[2].value : null
+  };
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  fetchAllMarket().then(market => {
+    state.market = market;
+    const hasAny = market.balance || market.us || market.india;
+    document.getElementById('marketLoading').style.display = 'none';
+    if (hasAny) {
+      buildMarketGrid(market);
+      document.getElementById('marketDataDisplay').style.display = 'block';
+    } else {
+      document.getElementById('marketError').style.display = 'block';
+    }
+    document.getElementById('btnStart').disabled = false;
+  });
+
+  document.getElementById('riskSlider').addEventListener('input', onSliderChange);
+  onSliderChange();
+});
+
+// ============================================================
+// MARKET GRID (welcome)
+// ============================================================
+function buildMarketGrid(market) {
+  const grid = document.getElementById('marketGrid');
+  const entries = [
+    { key: 'balance', label: 'バランス',     cls: 'balance' },
+    { key: 'us',      label: '米国チャレンジ', cls: 'us' },
+    { key: 'india',   label: 'インドチャレンジ', cls: 'india' }
+  ];
+  grid.innerHTML = entries.map(e => {
+    const d = market[e.key];
+    const val = d ? d.change1m : null;
+    const html = fmtChange(val);
+    return `<div class="market-item">
+      <div class="market-item-label ${e.cls}">${e.label}</div>
+      <div class="market-item-change ${changeClass(val)}">${html}</div>
+      <div class="market-item-period">1ヶ月</div>
+    </div>`;
+  }).join('');
+}
+
+function fmtChange(val) {
+  if (val === null || val === undefined) return '<span style="color:#bdbdbd">—</span>';
+  const arrow = val >= 0 ? '▲' : '▼';
+  return `${arrow}${Math.abs(val).toFixed(2)}%`;
+}
+
+function changeClass(val) {
+  if (val === null || val === undefined) return 'change-flat';
+  if (val > 0) return 'change-up';
+  if (val < 0) return 'change-down';
+  return 'change-flat';
+}
+
+// ============================================================
+// SLIDER
+// ============================================================
+const RISK_LABELS = ['', '非常に慎重', '慎重', 'バランス重視', 'やや積極的', '非常に積極的'];
+function onSliderChange() {
+  const v = parseInt(document.getElementById('riskSlider').value);
+  state.risk = v;
+  document.getElementById('sliderNum').textContent = v;
+  document.getElementById('sliderLabel').textContent = RISK_LABELS[v];
+}
+
+// ============================================================
+// CHOICES
+// ============================================================
+function selectChoice(type, value, el) {
+  const container = el.closest('.choices');
+  container.querySelectorAll('.choice-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state[type] = value;
+  if (type === 'period') document.getElementById('btnStep2Next').disabled = false;
+  if (type === 'goal')   document.getElementById('btnStep3Next').disabled = false;
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const PROGRESS = { welcome: 0, step1: 25, step2: 50, step3: 75, result: 100 };
+
+function goTo(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${screenId}`).classList.add('active');
+  document.getElementById('progressFill').style.width = (PROGRESS[screenId] || 0) + '%';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================================
+// SCORING
+// ============================================================
+function calcResult() {
+  const scores = { balance: 0, us: 0, india: 0 };
+
+  // --- Risk
+  const r = state.risk;
+  if (r <= 2) { scores.balance += 35; }
+  else if (r === 3) { scores.balance += 15; scores.us += 20; scores.india += 10; }
+  else { scores.us += 25; scores.india += 30; }
+
+  // --- Period
+  if (state.period === 'short') { scores.balance += 30; }
+  else if (state.period === 'mid') { scores.balance += 10; scores.us += 20; scores.india += 15; }
+  else { scores.us += 20; scores.india += 30; }
+
+  // --- Goal
+  if (state.goal === 'protect') { scores.balance += 30; }
+  else if (state.goal === 'stable') { scores.balance += 10; scores.us += 20; }
+  else { scores.us += 15; scores.india += 25; }
+
+  // --- Market momentum
+  const m = state.market;
+  if (m) {
+    ['balance','us','india'].forEach(key => {
+      const d = m[key];
+      if (!d) return;
+      const v1m = d.change1m;
+      const v3m = d.change3m;
+      if (v1m !== null) {
+        if (v1m >= 3)       scores[key] += 25;
+        else if (v1m >= -1) scores[key] += 10;
+        else                scores[key] -= 15;
+      }
+      if (v3m !== null) {
+        if (v3m >= 5)        scores[key] += 10;
+        else if (v3m <= -5)  scores[key] -= 10;
+      }
+    });
+  }
+
+  // Clamp negatives
+  ['balance','us','india'].forEach(k => { if (scores[k] < 0) scores[k] = 0; });
+
+  const winner = Object.entries(scores).reduce((a, b) => a[1] >= b[1] ? a : b)[0];
+  renderResult(scores, winner);
+  goTo('result');
+
+  // Animate bars after DOM shows
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => animateBars(scores, winner));
+  });
+}
+
+// ============================================================
+// RENDER RESULT
+// ============================================================
+const COURSE_INFO = {
+  balance: {
+    cls: 'balance',
+    badge: 'バランスコース',
+    name: 'バランスコース',
+    subtitle: '世界の株式や債券に分散投資。リスクを抑えながら安定的なリターンを狙います。'
+  },
+  us: {
+    cls: 'us',
+    badge: '米国チャレンジコース',
+    name: '米国チャレンジコース',
+    subtitle: '米国S&P500に連動。世界最大の株式市場の成長力を活用します。'
+  },
+  india: {
+    cls: 'india',
+    badge: 'インドチャレンジコース',
+    name: 'インドチャレンジコース',
+    subtitle: 'インドNifty50に連動。成長著しい新興国市場で高いリターンを狙います。'
+  }
+};
+
+function renderResult(scores, winner) {
+  const info = COURSE_INFO[winner];
+
+  document.getElementById('resultBadge').className = `result-badge ${info.cls}`;
+  document.getElementById('resultBadge').innerHTML = '🏆 おすすめコース';
+
+  document.getElementById('resultCourseName').className = `result-course-name ${info.cls}`;
+  document.getElementById('resultCourseName').textContent = info.name;
+
+  document.getElementById('resultSubtitle').textContent = info.subtitle;
+
+  // Numbers
+  document.getElementById('numBalance').textContent = scores.balance + 'pt';
+  document.getElementById('numUs').textContent = scores.us + 'pt';
+  document.getElementById('numIndia').textContent = scores.india + 'pt';
+
+  // Reasons
+  const reasons = buildReasons(winner);
+  document.getElementById('resultReasons').innerHTML = reasons.map(r =>
+    `<div class="reason-item"><span class="reason-icon">✓</span><span>${r}</span></div>`
+  ).join('');
+
+  // Market summary
+  renderMarketSummary();
+}
+
+function animateBars(scores, winner) {
+  const max = Math.max(scores.balance, scores.us, scores.india, 1);
+  const animate = (id, fillId, score, key) => {
+    const pct = Math.round(score / max * 100);
+    const fill = document.getElementById(fillId);
+    fill.style.width = pct + '%';
+    if (key === winner) fill.classList.add('winner');
+    if (pct > 15) {
+      fill.innerHTML = `<span class="score-bar-text">${score}pt</span>`;
+    }
+  };
+  animate('barBalance', 'barBalance', scores.balance, 'balance');
+  animate('barUs',      'barUs',      scores.us,      'us');
+  animate('barIndia',   'barIndia',   scores.india,   'india');
+}
+
+function buildReasons(winner) {
+  const reasons = [];
+  const r = state.risk;
+  const p = state.period;
+  const g = state.goal;
+  const m = state.market;
+
+  if (winner === 'balance') {
+    if (r <= 2) reasons.push('リスク許容度が低く、元本を守ることを重視しています。');
+    if (p === 'short') reasons.push('短期運用では値動きが少なく安定したコースが有利です。');
+    if (g === 'protect') reasons.push('元本保護を目的とするならバランスコースが最適です。');
+  } else if (winner === 'us') {
+    if (r >= 4) reasons.push('積極的なリスクテイクで、米国株の成長力を活かせます。');
+    if (p === 'mid' || p === 'long') reasons.push('米国株は中〜長期で安定した上昇トレンドを示してきました。');
+    if (g === 'stable' || g === 'aggressive') reasons.push('成長志向の目標に米国市場のパフォーマンスが合致します。');
+    if (m && m.us && m.us.change1m >= 3) reasons.push(`直近1ヶ月で米国株(S&P500)が${m.us.change1m.toFixed(1)}%上昇と好調です。`);
+  } else {
+    if (r >= 4) reasons.push('高いリスク許容度でインド市場の高成長を狙えます。');
+    if (p === 'long') reasons.push('インドは長期的な人口ボーナスと経済成長が期待されます。');
+    if (g === 'aggressive') reasons.push('積極的な増加を目指す方にはインドの高い成長ポテンシャルが魅力です。');
+    if (m && m.india && m.india.change1m >= 3) reasons.push(`直近1ヶ月でインド株(Nifty50)が${m.india.change1m.toFixed(1)}%上昇と勢いがあります。`);
+  }
+
+  // generic fallback
+  if (reasons.length === 0) reasons.push('あなたのアンケート回答と市場データを総合した結果です。');
+
+  return reasons;
+}
+
+function renderMarketSummary() {
+  const m = state.market;
+  const container = document.getElementById('resultMarket');
+
+  if (!m || (!m.balance && !m.us && !m.india)) {
+    container.innerHTML = `
+      <div class="market-summary-header">市場データ</div>
+      <div class="market-summary-body"><div class="no-data-note">市場データを取得できませんでした</div></div>`;
+    return;
+  }
+
+  const rows = [
+    { key: 'balance', cls: 'balance', label: 'バランス（ACWI）' },
+    { key: 'us',      cls: 'us',      label: '米国チャレンジ（S&P500）' },
+    { key: 'india',   cls: 'india',   label: 'インドチャレンジ（Nifty50）' }
+  ];
+
+  const rowsHtml = rows.map(r => {
+    const d = m[r.key];
+    if (!d) return `<div class="market-summary-row">
+      <span class="market-summary-name ${r.cls}">${r.label}</span>
+      <span style="font-size:12px;color:#bdbdbd">データなし</span>
+    </div>`;
+    const badge = (val, period) => {
+      const cls = val > 0 ? 'up' : val < 0 ? 'down' : 'flat';
+      const arrow = val >= 0 ? '▲' : '▼';
+      return `<span class="change-badge ${cls}">${arrow}${Math.abs(val).toFixed(1)}%<span class="badge-period"> ${period}</span></span>`;
+    };
+    const badges = [
+      d.change1w  !== null ? badge(d.change1w,  '1週') : '',
+      d.change1m  !== null ? badge(d.change1m,  '1月') : '',
+      d.change3m  !== null ? badge(d.change3m,  '3月') : ''
+    ].filter(Boolean).join('');
+    return `<div class="market-summary-row">
+      <span class="market-summary-name ${r.cls}">${r.label}</span>
+      <div class="market-badges">${badges}</div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="market-summary-header">騰落率（直近）</div>
+    <div class="market-summary-body">${rowsHtml}</div>`;
+}
+
+// ============================================================
+// RESET
+// ============================================================
+function resetApp() {
+  state.risk = 3;
+  state.period = null;
+  state.goal = null;
+
+  document.getElementById('riskSlider').value = 3;
+  onSliderChange();
+
+  ['period-choices','goal-choices'].forEach(id => {
+    document.getElementById(id).querySelectorAll('.choice-card').forEach(c => c.classList.remove('selected'));
+  });
+
+  document.getElementById('btnStep2Next').disabled = true;
+  document.getElementById('btnStep3Next').disabled = true;
+
+  ['barBalance','barUs','barIndia'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.width = '0%';
+    el.classList.remove('winner');
+    el.innerHTML = '';
+  });
+
+  goTo('welcome');
+}
+</script>
+</body>
+</html>
